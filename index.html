@@ -120,6 +120,27 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
   background:rgba(6,58,94,.35);padding:8px 18px;border-radius:30px;backdrop-filter:blur(4px)}
 .best{margin-top:10px;font-weight:800;font-size:14px;opacity:.9}
 .stars{font-size:34px;letter-spacing:4px;margin:2px 0 4px;animation:bob 2.2s ease-in-out infinite}
+.duck{position:fixed;bottom:16px;right:16px;z-index:40;width:58px;height:58px;border-radius:50%;border:none;
+  background:var(--sun);font-size:30px;cursor:pointer;box-shadow:0 6px 0 #c98a00,0 10px 16px rgba(0,0,0,.25);
+  animation:duckwob 1.6s ease-in-out infinite}
+.duck:active{transform:translateY(4px)}
+@keyframes duckwob{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
+.joke-pop{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
+  background:rgba(6,40,70,.55);padding:24px}
+.joke-pop.show{display:flex;animation:pop .35s cubic-bezier(.2,1.3,.4,1)}
+.joke-bubble{background:#fff;color:var(--ink);border-radius:26px;padding:24px 22px;max-width:340px;text-align:center;
+  font-weight:800;font-size:21px;box-shadow:0 16px 40px rgba(0,0,0,.35)}
+.joke-bubble #jokeText{display:block;line-height:1.35;margin-bottom:18px}
+.joke-actions{display:flex;gap:10px;justify-content:center}
+.joke-actions button{border:none;cursor:pointer;font-family:'Chewy',cursive;font-size:18px;padding:10px 18px;border-radius:30px}
+.joke-actions button:first-child{background:var(--coral);color:#fff}
+.joke-actions button:last-child{background:#dfeef6;color:var(--deep)}
+.toast{position:fixed;top:16%;left:50%;transform:translateX(-50%) scale(.8);z-index:55;
+  background:var(--coral);color:#fff;font-family:'Chewy',cursive;font-size:22px;padding:10px 22px;border-radius:30px;
+  opacity:0;pointer-events:none;transition:.2s;box-shadow:0 8px 20px rgba(0,0,0,.3)}
+.toast.show{opacity:1;transform:translateX(-50%) scale(1)}
+.duckfall{position:fixed;top:-50px;z-index:58;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(110vh) rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -127,6 +148,17 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
 <div class="bubbles" id="bubbles"></div>
 <canvas id="confetti"></canvas>
 <button class="mute" id="muteBtn" onclick="toggleMute()" aria-label="toggle sound">🔊</button>
+<button class="duck" id="duckBtn" onclick="tellJoke()" aria-label="duck joke">🦆</button>
+<div class="joke-pop" id="jokePop">
+  <div class="joke-bubble">
+    <span id="jokeText"></span>
+    <div class="joke-actions">
+      <button onclick="tellJoke()">😆 Another!</button>
+      <button onclick="closeJoke()">Close</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
 
 <div class="wrap">
   <h1>POOL PARTY!</h1>
@@ -287,7 +319,7 @@ function flip(c){
       matched++;document.getElementById('pairs').textContent=matched;
       first=null;lock=false; if(matched===FACES.length) win();},420);
   }else{
-    setTimeout(()=>{sNoMatch();first.classList.remove('flip');c.classList.remove('flip');first=null;lock=false;},800);
+    setTimeout(()=>{sNoMatch();funnyMiss();first.classList.remove('flip');c.classList.remove('flip');first=null;lock=false;},800);
   }
 }
 
@@ -395,6 +427,46 @@ function shareGame(){
   if(navigator.share){ navigator.share(data).catch(()=>{}); }
   else if(navigator.clipboard){ navigator.clipboard.writeText(location.href).then(()=>alert('Link copied! Share it with your friends 🎉')); }
   else { prompt('Copy this link to share:', location.href); }
+}
+/* ---- funny stuff for kids ---- */
+function sQuack(){ if(!AC||muted)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
+  o.type='sawtooth'; o.frequency.setValueAtTime(300,t); o.frequency.linearRampToValueAtTime(210,t+0.13);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.2,t+0.02); g.gain.exponentialRampToValueAtTime(0.0001,t+0.17);
+  o.connect(g).connect(AC.destination); o.start(t); o.stop(t+0.19); }
+function sBoing(){ if(!AC||muted)return; const t=AC.currentTime; const o=AC.createOscillator(),g=AC.createGain();
+  o.type='sine'; o.frequency.setValueAtTime(420,t); o.frequency.exponentialRampToValueAtTime(120,t+0.2);
+  g.gain.setValueAtTime(0.0001,t); g.gain.exponentialRampToValueAtTime(0.18,t+0.01); g.gain.exponentialRampToValueAtTime(0.0001,t+0.24);
+  o.connect(g).connect(AC.destination); o.start(t); o.stop(t+0.26); }
+
+const JOKES=[
+  "What did the sea say to the sand? Nothing — it just waved! 🌊",
+  "Why did the rubber duck cross the pool? To get to the other tide! 🦆",
+  "Why are fish so smart? They live in schools! 🐠",
+  "What do you call a fish with a bowtie? So-fish-ticated! 🐟",
+  "Why don't oysters share their snacks? Because they're shellfish! 🦪",
+  "What's a shark's favourite sandwich? Peanut butter and jellyfish! 🦈",
+  "How do pool noodles say hello? They give a little wave! 〰️",
+  "What did one wave say to the other? I'll catch you later! 🏄",
+  "Why did the kid float so well? He was a little boy-ant! 🛟",
+  "What do you call a happy glass of water? H-2-Oh-yeah! 💧",
+  "Why did the towel go to the party? To dry and have fun! 🏖️",
+  "What do you call a swimming pool full of soup? A soup-pool-pool! 🥣"
+];
+const MISS=["Oopsie-doodle! 🙈","So close, splashy! 💦","Nope — keep swimming! 🐠","Almost, captain! 🧢","Whoopsie-daisy!","Not quite — splash again! 🌊","Blub blub… try again! 🫧"];
+
+function tellJoke(){ initAudio(); sQuack(); rainDucks(9);
+  document.getElementById('jokeText').textContent = JOKES[(Math.random()*JOKES.length)|0];
+  document.getElementById('jokePop').classList.add('show'); }
+function closeJoke(){ document.getElementById('jokePop').classList.remove('show'); }
+function funnyMiss(){ sBoing(); const t=document.getElementById('toast');
+  t.textContent=MISS[(Math.random()*MISS.length)|0]; t.classList.add('show');
+  clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'),950); }
+function rainDucks(n){
+  for(let i=0;i<n;i++){ const d=document.createElement('div'); d.className='duckfall';
+    d.textContent = Math.random()<0.8 ? '🦆' : '💦';
+    d.style.left=(Math.random()*96)+'vw'; d.style.fontSize=(22+Math.random()*24)+'px';
+    d.style.animationDuration=(2.2+Math.random()*2)+'s';
+    document.body.appendChild(d); setTimeout(()=>d.remove(),4600); }
 }
 </script>
 </body>
