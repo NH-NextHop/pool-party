@@ -116,6 +116,10 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
 .mute{position:fixed;top:12px;left:12px;z-index:30;width:46px;height:46px;border-radius:50%;border:none;
   background:rgba(6,58,94,.45);color:#fff;font-size:22px;cursor:pointer;backdrop-filter:blur(4px)}
 .mute:active{transform:scale(.92)}
+.countdown{margin-top:14px;font-family:'Chewy',cursive;font-size:20px;color:#fff;
+  background:rgba(6,58,94,.35);padding:8px 18px;border-radius:30px;backdrop-filter:blur(4px)}
+.best{margin-top:10px;font-weight:800;font-size:14px;opacity:.9}
+.stars{font-size:34px;letter-spacing:4px;margin:2px 0 4px;animation:bob 2.2s ease-in-out infinite}
 </style>
 </head>
 <body>
@@ -138,12 +142,14 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
     </div>
     <button class="btn" onclick="start()">Let's play! 🎉</button>
     <p class="small">Find the matching pairs to unlock the party invite 🔓</p>
+    <div class="countdown" id="cdStart">⏳ …</div>
+    <p class="best" id="bestStart"></p>
   </section>
 
   <!-- ===== Screen 2: game ===== -->
   <section class="screen" id="s-game">
     <p class="tag" id="greet">Match all the pairs!</p>
-    <div class="hud">🔄 Moves: <b id="moves">0</b> &nbsp;|&nbsp; ⭐ Pairs: <b id="pairs">0</b>/8</div>
+    <div class="hud">⏱ <b id="timer">0:00</b> &nbsp;|&nbsp; 🔄 <b id="moves">0</b> &nbsp;|&nbsp; ⭐ <b id="pairs">0</b>/8</div>
     <div class="grid" id="grid"></div>
     <button class="btn mint" style="margin-top:16px;font-size:18px;padding:10px 22px" onclick="build()">Shuffle 🔀</button>
   </section>
@@ -152,7 +158,9 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
   <section class="screen" id="s-win">
     <div class="win-emoji">🎉</div>
     <h1 id="winName" style="font-size:34px">You did it!</h1>
-    <p class="tag">You found Jelena &amp; Vedran — now come party with us!</p>
+    <div class="stars" id="stars">⭐⭐⭐</div>
+    <p class="tag" id="winStats">You found Jelena &amp; Vedran — now come party with us!</p>
+    <div class="countdown" id="cdWin">⏳ …</div>
     <div class="details">
       <div class="when">Saturday, June 6</div>
       <div class="time">10:30 – 15:00</div>
@@ -161,6 +169,10 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
     <div class="btns">
       <button class="btn gold" onclick="openMap()">📍 Open the map</button>
       <button class="btn" onclick="addCal()">🗓️ Save the date</button>
+    </div>
+    <div class="btns">
+      <button class="btn mint" onclick="playAgain()">🔁 Play again</button>
+      <button class="btn" onclick="shareGame()">📤 Share</button>
     </div>
     <div class="rsvp" id="rsvpBox">
       <div class="rsvp-title">Are you coming? 🎈</div>
@@ -208,6 +220,7 @@ const FACES = [
 ];
 
 let deck=[], first=null, lock=false, moves=0, matched=0, kidName='';
+let timerInt=null, startTs=0, elapsed=0;
 
 /* ---- floating bubbles ---- */
 (function(){const b=document.getElementById('bubbles');for(let i=0;i<22;i++){const s=document.createElement('span');
@@ -254,6 +267,7 @@ function build(){
   first=null;lock=false;moves=0;matched=0;
   document.getElementById('moves').textContent=0;
   document.getElementById('pairs').textContent=0;
+  resetTimer();
   deck=[];FACES.forEach(f=>{deck.push({...f});deck.push({...f})});
   for(let i=deck.length-1;i>0;i--){const j=(Math.random()*(i+1))|0;[deck[i],deck[j]]=[deck[j],deck[i]];}
   deck.forEach((f,idx)=>{
@@ -265,7 +279,7 @@ function build(){
 
 function flip(c){
   if(lock||c.classList.contains('flip')||c.classList.contains('done'))return;
-  c.classList.add('flip'); sFlip();
+  c.classList.add('flip'); sFlip(); startTimer();
   if(!first){first=c;return;}
   moves++;document.getElementById('moves').textContent=moves;lock=true;
   if(first.dataset.id===c.dataset.id){
@@ -277,7 +291,7 @@ function flip(c){
   }
 }
 
-function win(){ sWin(); setTimeout(()=>{show('s-win');confetti();},450); }
+function win(){ sWin(); stopTimer(); finishStats(); setTimeout(()=>{show('s-win');confetti();},450); }
 
 function openMap(){ window.open(CONFIG.mapUrl,'_blank'); }
 
@@ -330,6 +344,57 @@ function confetti(){
       x.fillRect(-p.r/2,-p.r/2,p.r,p.r*.6);x.restore();
       if(p.y>cv.height+20){p.y=-20;p.x=Math.random()*cv.width;}});
     if(t<320)requestAnimationFrame(loop);else x.clearRect(0,0,cv.width,cv.height);})();
+}
+/* ---- timer ---- */
+function fmt(ms){ const s=Math.floor(ms/1000); return Math.floor(s/60)+':'+String(s%60).padStart(2,'0'); }
+function startTimer(){ if(timerInt) return; startTs=Date.now()-elapsed;
+  timerInt=setInterval(()=>{ elapsed=Date.now()-startTs; document.getElementById('timer').textContent=fmt(elapsed); },200); }
+function stopTimer(){ if(timerInt){ clearInterval(timerInt); timerInt=null; } elapsed=Date.now()-startTs; }
+function resetTimer(){ if(timerInt){clearInterval(timerInt);timerInt=null;} elapsed=0; startTs=0;
+  const t=document.getElementById('timer'); if(t) t.textContent='0:00'; }
+
+/* ---- stars + best (saved locally when available) ---- */
+function lsGet(k){ try{ return localStorage.getItem(k); }catch(e){ return null; } }
+function lsSet(k,v){ try{ localStorage.setItem(k,v); }catch(e){} }
+function finishStats(){
+  const secs=Math.round(elapsed/1000);
+  const stars = moves<=12 ? 3 : moves<=18 ? 2 : 1;
+  document.getElementById('stars').textContent = '⭐'.repeat(stars)+'☆'.repeat(3-stars);
+  document.getElementById('winStats').innerHTML =
+    `Done in <b>${moves}</b> moves &amp; <b>${fmt(elapsed)}</b> — you found Jelena &amp; Vedran!`;
+  // best score
+  const prev=parseInt(lsGet('pp_best_moves')||'9999',10);
+  if(moves<prev){ lsSet('pp_best_moves',moves); lsSet('pp_best_time',secs); }
+  loadBest();
+}
+function loadBest(){
+  const bm=lsGet('pp_best_moves'); const el=document.getElementById('bestStart');
+  if(el) el.textContent = bm ? `🏆 Best: ${bm} moves` : '';
+}
+
+/* ---- countdown to the party ---- */
+const PARTY_TS = new Date('2026-06-06T10:30:00+02:00').getTime();
+function tickCountdown(){
+  const diff = PARTY_TS - Date.now();
+  let txt;
+  if(diff<=0){ txt='🎉 It\u2019s pool party time!'; }
+  else{
+    const d=Math.floor(diff/86400000), h=Math.floor(diff/3600000)%24,
+          m=Math.floor(diff/60000)%60, s=Math.floor(diff/1000)%60;
+    const dd = d>0 ? d+(d===1?' day ':' days ') : '';
+    txt = `⏳ ${dd}${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} until splash!`;
+  }
+  ['cdStart','cdWin'].forEach(id=>{ const e=document.getElementById(id); if(e) e.textContent=txt; });
+}
+setInterval(tickCountdown,1000); tickCountdown(); loadBest();
+
+/* ---- play again + share ---- */
+function playAgain(){ resetTimer(); build(); show('s-game'); }
+function shareGame(){
+  const data={ title:"Jelena & Vedran's Pool Party!", text:'Play the game & RSVP for our pool party! 🏊', url:location.href };
+  if(navigator.share){ navigator.share(data).catch(()=>{}); }
+  else if(navigator.clipboard){ navigator.clipboard.writeText(location.href).then(()=>alert('Link copied! Share it with your friends 🎉')); }
+  else { prompt('Copy this link to share:', location.href); }
 }
 </script>
 </body>
