@@ -113,16 +113,16 @@ canvas#confetti{position:fixed;inset:0;pointer-events:none;z-index:50}
 .rsvp .btn{font-size:20px;padding:13px 26px;margin-top:2px}
 .rsvp-msg{margin-top:12px;font-weight:800;font-size:16px;min-height:20px}
 .rsvp-msg.ok{color:#0a8f5b}.rsvp-msg.err{color:#c0392b}
-.mute{position:fixed;top:12px;left:12px;z-index:30;width:46px;height:46px;border-radius:50%;border:none;
-  background:rgba(6,58,94,.45);color:#fff;font-size:22px;cursor:pointer;backdrop-filter:blur(4px)}
+.mute{position:fixed;top:calc(14px + env(safe-area-inset-top));left:calc(12px + env(safe-area-inset-left));z-index:30;width:46px;height:46px;border-radius:50%;border:none;
+  background:rgba(6,58,94,.45);color:#fff;font-size:22px;cursor:pointer;backdrop-filter:blur(4px);touch-action:manipulation}
 .mute:active{transform:scale(.92)}
 .countdown{margin-top:14px;font-family:'Chewy',cursive;font-size:20px;color:#fff;
   background:rgba(6,58,94,.35);padding:8px 18px;border-radius:30px;backdrop-filter:blur(4px)}
 .best{margin-top:10px;font-weight:800;font-size:14px;opacity:.9}
 .stars{font-size:34px;letter-spacing:4px;margin:2px 0 4px;animation:bob 2.2s ease-in-out infinite}
-.duck{position:fixed;bottom:16px;right:16px;z-index:40;width:58px;height:58px;border-radius:50%;border:none;
-  background:var(--sun);font-size:30px;cursor:pointer;box-shadow:0 6px 0 #c98a00,0 10px 16px rgba(0,0,0,.25);
-  animation:duckwob 1.6s ease-in-out infinite}
+.duck{position:fixed;bottom:calc(76px + env(safe-area-inset-bottom));right:calc(16px + env(safe-area-inset-right));z-index:40;width:60px;height:60px;border-radius:50%;border:none;
+  background:var(--sun);font-size:31px;cursor:pointer;box-shadow:0 6px 0 #c98a00,0 10px 16px rgba(0,0,0,.25);
+  animation:duckwob 1.6s ease-in-out infinite;touch-action:manipulation}
 .duck:active{transform:translateY(4px)}
 @keyframes duckwob{0%,100%{transform:rotate(-8deg)}50%{transform:rotate(8deg)}}
 .joke-pop{position:fixed;inset:0;z-index:60;display:none;align-items:center;justify-content:center;
